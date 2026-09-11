@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GC SRM Lending Board
 
-## Getting Started
+A peer-to-peer campus resource sharing board for SRM Kattankulathur students. Students regularly need items for short periods — a calculator for one exam, a textbook for a week, a charger, a lab coat — and this app gives them a quick, organised way to post and discover things to borrow from each other.
 
-First, run the development server:
+**Live demo:** _add link after deploying to Vercel_
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## Features
+
+- Public listing feed — no login required to browse
+- Add-listing form with client-side + database-level validation
+- Search listings by item name or description
+- Filter by category
+- Loading, empty, and error states
+- Responsive — works on mobile and desktop
+
+---
+
+## Setup
+
+### 1. Create the Supabase table
+
+Run this SQL in your Supabase project's SQL editor:
+
+```sql
+create table listings (
+  id uuid primary key default gen_random_uuid(),
+  item_name text not null,
+  description text not null,
+  category text not null,
+  lender_name text not null,
+  contact_info text not null,
+  created_at timestamptz not null default now(),
+
+  constraint item_name_length
+    check (char_length(trim(item_name)) between 2 and 100),
+  constraint description_length
+    check (char_length(trim(description)) between 5 and 500),
+  constraint lender_name_length
+    check (char_length(trim(lender_name)) between 2 and 60),
+  constraint contact_length
+    check (char_length(trim(contact_info)) between 3 and 150)
+);
+
+alter table listings enable row level security;
+
+create policy "Public can view listings"
+  on listings for select using (true);
+
+create policy "Public can create listings"
+  on listings for insert with check (true);
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Set environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project dashboard → Settings → API.
 
-## Learn More
+### 3. Install and run
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Deployment (Vercel)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Push the repo to GitHub.
+2. Import the project on [vercel.com](https://vercel.com).
+3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as environment variables in the Vercel project settings.
+4. Deploy.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Known Limitations
+
+- **No authentication.** There's no login system, so the app can't verify who posted what. Listing status (borrowed / available) is not tracked in-app — coordination happens directly between student and lender via the listed contact info. This is an intentional design trade-off.
+- **Listings can't be edited or deleted** after creation, because there's no way to verify ownership without auth.
+- **Contact info is publicly visible** on each listing card. This is acceptable for a college demo but would need obfuscation or an in-app relay for a production deployment.
+
+---
+
+## Demo video
+
+_add link_
